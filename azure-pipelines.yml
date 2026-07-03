@@ -1,36 +1,57 @@
 trigger:
-- main11
+- main
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
 
+# Checkout Repository
 - checkout: self
 
+# Install Python
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '3.11'
 
+# Install Dependencies
 - script: |
     python -m pip install --upgrade pip
     pip install -r requirements.txt
-  displayName: Install Packages
+  displayName: Install Dependencies
 
+# Show Repository Contents
 - script: |
-    pytest tests --junitxml=test-results.xml
+    echo "Current Directory:"
+    pwd
+
+    echo "Repository Files:"
+    ls -R
+  displayName: Show Repository Files
+
+# Run Unit Tests
+- script: |
+    export PYTHONPATH=$(Build.SourcesDirectory)
+    python -m pytest tests --junitxml=test-results.xml
   displayName: Run Tests
 
+# Publish Test Results
 - task: PublishTestResults@2
   inputs:
     testResultsFiles: '**/test-results.xml'
-    testRunTitle: Unit Tests
+    testRunTitle: Flask Unit Tests
 
+# Archive Files
 - task: ArchiveFiles@2
   inputs:
     rootFolderOrFile: .
+    includeRootFolder: false
     archiveType: zip
     archiveFile: $(Build.ArtifactStagingDirectory)/website.zip
+    replaceExistingArchive: true
 
-- publish: $(Build.ArtifactStagingDirectory)/website.zip
-  artifact: Website
+# Publish Artifact
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/website.zip'
+    ArtifactName: Website
